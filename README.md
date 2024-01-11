@@ -35,7 +35,7 @@ pip install -e .
 ### Installation
 Our NeRF editing code is based on [nerfstudio](https://docs.nerf.studio/).
 
-We have tested our code with torch 2.0.1+cu118, nerfstudio 0.3.4, diffusers 0.17.1 and transformers 4.30.2.
+We have tested our code with torch 2.0.1+cu118, tinycudann 1.7, nerfstudio 0.3.4, diffusers 0.17.1 and transformers 4.30.2.
 
 Install `pds_nerf` library:
 ```
@@ -67,6 +67,8 @@ Below are the instance prompts we used in Dreambooth finetuning:
 
 - person-small: "a photo of a sks man"
 - yuseung: "a photo of a sks man"
+
+'person-small' data is from [Instruct-NeRF2NeRF](https://instruct-nerf2nerf.github.io/).
 
 ### Run
 #### 1. Initialize NeRF
