@@ -95,6 +95,7 @@ ns-train pds --data {.../data/yuseung} --load-dir {PATH/TO/NERFACTO_OUTPUT_DIR/n
 		--pipeline.pds.tgt_prompt "a photo of a sks Spider Man" \\
 		--pipeline.pds.sd_pretrained_model_or_path {.../dreambooth_ckpt/yuseung_dreambooth}
 ```
+It would take around 40GB VRAM with 512x512 images. To run the command within 24GB VRAM, you can use multi GPUs by assigning a different device to a diffusion model: `--pipeline.pds_device "cuda:1"`
 
 After the training, it will automatically render an edited NeRF scene at the same viewpoints of a training dataset and save those rendering images under `PATH/TO/OUTPUT_DIR/eval_outputs`.
 
