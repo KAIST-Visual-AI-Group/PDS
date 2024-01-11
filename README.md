@@ -3,7 +3,7 @@
 
 [**arXiv**](https://arxiv.org/abs/2311.13831) | [**Project Page**](https://posterior-distillation-sampling.github.io/) <br>
 
-[Juil Koo](https://63days.github.io), [Chanho Park](https://charlieppark.kr/), [Minhyuk Sung](https://mhsung.github.io/) <br>
+[Juil Koo](https://63days.github.io), [Chanho Park](https://github.com/charlieppark), [Minhyuk Sung](https://mhsung.github.io/) <br>
 
 # Introduction
 This repository contains the official implementation of **Posterior Distillation Sampling (PDS)**. <br>
