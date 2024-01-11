@@ -1,0 +1,10 @@
+*.pyc
+/dist/
+**/*.egg-info/
+data/*
+*.ipynb_checkpoints
+*.so
+*.o
+*.swp
+**/outputs/
+**/data/
