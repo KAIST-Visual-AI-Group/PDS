@@ -46,7 +46,7 @@ dependencies:
       - chardet==5.2.0
       - charset-normalizer==3.3.2
       - click==8.1.7
-      - clip==1.0
+      - clip
       - cmake==3.28.1
       - colorlog==6.8.0
       - comet-ml==3.35.5
