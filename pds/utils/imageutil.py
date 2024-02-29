@@ -2,6 +2,8 @@ from typing import List
 
 from PIL import Image
 
+import torch.nn.functional as F
+
 
 def stack_images_horizontally(images: List, save_path=None):
     widths, heights = list(zip(*(i.size for i in images)))
@@ -55,3 +57,11 @@ def merge_images(images: List):
 
     images = list(map(stack_images_horizontally, images))
     return stack_images_vertically(images)
+
+def resize(img):
+    h, w = img.shape[2:]
+    l = min(h, w)
+    h = int(h * 512 / l)
+    w = int(w * 512 / l)
+    img_512 = F.interpolate(img, size=(h, w), mode="bilinear")
+    return img_512

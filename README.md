@@ -12,7 +12,7 @@ PDS enables various parametric image editing, including NeRF editing and SVG edi
 # UPDATES
 - [x] PDS core code.
 - [x] NeRF editing code based on [nerfstudio](https://docs.nerf.studio/).
-- [ ] SVG editing code.
+- [x] SVG editing code based on [ximinng/VectorFusion-pytorch](https://github.com/ximinng/VectorFusion-pytorch/).
 
 [//]: # (### Abstract)
 > We introduce Posterior Distillation Sampling (PDS), a novel optimization method for parametric image editing based on diffusion models. Existing optimization-based methods, which leverage the powerful 2D prior of diffusion models to handle various parametric images, have mainly focused on generation. Unlike generation, editing requires a balance between conforming to the target attribute and preserving the identity of the source content. Recent 2D image editing methods have achieved this balance by leveraging the stochastic latent encoded in the generative process of diffusion models. To extend the editing capabilities of diffusion models shown in pixel space to parameter space, we reformulate the 2D image editing method into an optimization form named PDS. PDS matches the stochastic latents of the source and the target, enabling the sampling of targets in diverse parameter spaces that align with a desired attribute while maintaining the source's identity. We demonstrate that this optimization resembles running a generative process with the target attribute, but aligning this process with the trajectory of the source's generative process. Extensive editing results in Neural Radiance Fields and Scalable Vector Graphics representations demonstrate that PDS is capable of sampling targets to fulfill the aforementioned balance across various parameter spaces.
@@ -25,8 +25,11 @@ Before running NeRF editing and SVG editing, build a conda environment and insta
 ```
 git clone https://github.com/KAIST-Geometric-AI-Group/PDS
 cd PDS
-conda env create -f environment.yaml
+conda create -n pds python=3.9.18
 conda activate pds
+conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.8 -c pytorch -c nvidia
+pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+conda env update --file environment.yaml
 pip install -e .
 ```
 
@@ -108,7 +111,33 @@ ns-train pds_refinement --data {PATH/TO/PDS_OUTPUT_DIR/eval_outputs} --load-dir 
 Here, `PATH/TO/PDS_OUTPUT_DIR` is the output directory of the previous stage. Pass the same `tgt_prompt` and diffusion model used in the previous stage.
 
 ## SVG Editing
-Coming soon.
+
+### Installation
+Our SVG editing code is based on [ximinng/VectorFusion-pytorch](https://github.com/ximinng/VectorFusion-pytorch/).
+
+
+Install `diffvg` library:
+```
+git clone https://github.com/BachiLi/diffvg.git
+cd diffvg
+git submodule update --init --recursive
+conda install -y -c anaconda cmake
+conda install -y -c conda-forge ffmpeg
+pip install svgwrite
+pip install svgpathtools
+pip install cssutils
+pip install numba
+pip install torch-tools
+pip install visdom
+python setup.py install
+```
+
+### Run
+To edit a svg with PDS:
+```
+cd pds/svg/pds_svg
+python pds_svg.py --svg_path {svg_file} --src_prompt "{source_prompt}" --tgt_prompt "{target_prompt}"
+```
 
 # Citation
 If you find our work useful, please consider citing:
