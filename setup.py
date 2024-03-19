@@ -1,3 +1,3 @@
 from setuptools import setup
 
-setup(name="pds", version=0.1, packages=["pds"], zip_safe=False)
+setup(name="pds", version=1.0, packages=["pds"], zip_safe=False)

@@ -56,7 +56,7 @@ nerfacto_method = MethodSpecification(
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
     ),
-    description="ModifiedNerfacto",
+    description="Nerfacto that can turn off the use of appearance embedding",
 )
 pds_method = MethodSpecification(
     config=PDSTrainerConfig(
@@ -209,7 +209,7 @@ pds_splat_method = MethodSpecification(
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
     ),
-    description="PDS Splatting",
+    description="PDS-based 3D Gaussian Splat editing method",
 )
 
 pds_splat_refinement_method = MethodSpecification(
@@ -270,5 +270,5 @@ pds_splat_refinement_method = MethodSpecification(
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
     ),
-    description="PDS Splatting refinement",
+    description="Refinement Stage of PDS-Splat",
 )

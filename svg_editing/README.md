@@ -1,4 +1,4 @@
-# SVG Editing
+# SVG Editing with PDS
 
 ## Installation
 Our SVG editing code is based on [ximinng/VectorFusion-pytorch](https://github.com/ximinng/VectorFusion-pytorch/).
@@ -21,7 +21,7 @@ python setup.py install
 ```
 
 ## Run
-To edit a svg with PDS:
+To edit a svg with PDS, run the following command:
 ```
 python pds_svg.py --svg_path {svg_file} --src_prompt "{source_prompt}" --tgt_prompt "{target_prompt}"
 ```

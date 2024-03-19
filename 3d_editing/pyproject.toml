@@ -3,7 +3,6 @@ name = "pds_nerf"
 version = "1.0.0"
 
 dependencies=[
-		#"nerfstudio==0.3.4",
 		"nerfstudio==1.0.2",
 		"clip @ git+https://github.com/openai/CLIP.git",
 		"diffusers==0.17.1",
