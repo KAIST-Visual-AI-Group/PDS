@@ -12,10 +12,9 @@ from PIL import Image
 from torch.cuda.amp.grad_scaler import GradScaler
 from typing_extensions import Literal
 
-from pds_nerf.modified_nerfstudio.base_pipeline import \
-    ModifiedVanillaPipeline
-from pds_nerf.pds_datamanager import PDSDataManagerConfig
-from pds.pds import PDS, PDSConfig, pil_to_tensor, tensor_to_pil
+from pds_nerf.pipelines.base_pipeline import ModifiedVanillaPipeline
+from pds_nerf.data.datamanagers.pds_datamanager import PDSDataManagerConfig
+from pds.pds import PDS, PDSConfig, tensor_to_pil
 from pds.utils.imageutil import merge_images
 from pds.utils.sysutil import clean_gpu
 
@@ -69,20 +68,13 @@ class PDSPipeline(ModifiedVanillaPipeline):
             self.current_spot = np.random.randint(len(self.datamanager.train_dataparser_outputs.image_filenames))
         current_spot = self.current_spot
         current_index = self.datamanager.image_batch["image_idx"][current_spot]
-        camera_transforms = self.datamanager.train_camera_optimizer(current_index.unsqueeze(dim=0))
-        current_camera = self.datamanager.train_dataparser_outputs.cameras[current_index].to(self.device)
-        current_ray_bundle = current_camera.generate_rays(
-            torch.tensor(list(range(1))).unsqueeze(-1),
-            camera_opt_to_camera=camera_transforms,
-        )
-        camera_outputs = self.get_outputs_for_camera_ray_bundle(current_ray_bundle)
+        current_camera = self.datamanager.train_dataparser_outputs.cameras[current_index:current_index+1].to(self.device)
+        camera_outputs = self.model.diff_get_outputs_for_camera(current_camera)
         rendered_image = camera_outputs["rgb"].unsqueeze(dim=0).permute(0, 3, 1, 2)  # [B,3,H,W]
 
         # delete to free up memory
         del camera_outputs
         del current_camera
-        del current_ray_bundle
-        del camera_transforms
         clean_gpu()
 
         return rendered_image, current_spot

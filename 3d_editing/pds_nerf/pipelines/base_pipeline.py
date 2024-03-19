@@ -122,6 +122,7 @@ class ModifiedVanillaPipeline(VanillaPipeline):
         )
         ####
         num_images = len(self.datamanager.fixed_indices_eval_dataloader)
+
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
@@ -129,66 +130,47 @@ class ModifiedVanillaPipeline(VanillaPipeline):
             MofNCompleteColumn(),
             transient=True,
         ) as progress:
-            task = progress.add_task(
-                "[green]Evaluating all eval images...", total=num_images
-            )
+            task = progress.add_task("[green]Evaluating all eval images...", total=num_images)
 
             gif_images = []
             gif_img_filenames = []
-            for i, (camera_ray_bundle, batch) in enumerate(
-                self.datamanager.fixed_indices_eval_dataloader
-            ):
+            for i, (camera, batch) in enumerate(self.datamanager.fixed_indices_eval_dataloader):
+                image_filename = Path(self.render_dataset.image_filenames[i]).stem
+
                 # time this the following line
-                image_filename = self.render_dataset.image_filenames[i]
-                image_filename = Path(image_filename).stem  # frame_00346
-
                 inner_start = time()
-                height, width = camera_ray_bundle.shape
+                outputs = self.model.get_outputs_for_camera(camera=camera)
+                height, width = camera.height, camera.width
                 num_rays = height * width
-                outputs = self.model.get_outputs_for_camera_ray_bundle(
-                    camera_ray_bundle
-                )
-                metrics_dict, images_dict = self.model.get_image_metrics_and_images(
-                    outputs, batch
-                )
-
+                metrics_dict, images_dict = self.model.get_image_metrics_and_images(outputs, batch)
                 if output_path is not None:
-                    camera_indices = camera_ray_bundle.camera_indices
-                    assert camera_indices is not None
+                    # raise NotImplementedError("Saving images is not implemented yet")
                     for key, val in images_dict.items():
                         img = Image.fromarray((val * 255).byte().cpu().numpy())
-                        if key != "img":
-                            img.save(
-                                output_path
-                                / "{0:06d}-{1}.jpg".format(
-                                    int(camera_indices[0, 0, 0]), key
-                                )
-                            )
-                        else:
+                        if key == "img":
+                            img.save(output_path / f"images/{image_filename}.png")
                             gif_images.append(img)
                             gif_img_filenames.append(image_filename)
-                            img.save(output_path / f"images/{image_filename}.png")
+
 
                 assert "num_rays_per_sec" not in metrics_dict
-                metrics_dict["num_rays_per_sec"] = num_rays / (time() - inner_start)
+                metrics_dict["num_rays_per_sec"] = (num_rays / (time() - inner_start)).item()
                 fps_str = "fps"
                 assert fps_str not in metrics_dict
-                metrics_dict[fps_str] = metrics_dict["num_rays_per_sec"] / (
-                    height * width
-                )
+                metrics_dict[fps_str] = (metrics_dict["num_rays_per_sec"] / (height * width)).item()
                 metrics_dict_list.append(metrics_dict)
                 progress.advance(task)
-
+        
+        # save gif
         if output_path is not None:
             h, w = gif_images[0].size
             l = max(h, w)
             if l > 512:
                 h = int(h * 512 / l)
                 w = int(w * 512 / l)
-                gif_images = [x.resize((h, w)) for x in gif_images]
+                gif_images = [x.resize((h,w)) for x in gif_images]
                 gif_img_filenames, gif_images = zip(
-                    *sorted(
-                        zip(gif_img_filenames, gif_images), key=lambda pair: pair[0]
+                    *sorted(zip(gif_img_filenames, gif_images), key=lambda pair: pair[0]
                     )
                 )
             images2gif(gif_images, output_path / f"images/animation.gif")

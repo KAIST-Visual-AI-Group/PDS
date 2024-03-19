@@ -1,9 +1,10 @@
 [project]
 name = "pds_nerf"
-version = "0.1.0"
+version = "1.0.0"
 
 dependencies=[
-		"nerfstudio==0.3.4",
+		#"nerfstudio==0.3.4",
+		"nerfstudio==1.0.2",
 		"clip @ git+https://github.com/openai/CLIP.git",
 		"diffusers==0.17.1",
 		"transformers==4.30.2",
@@ -42,3 +43,5 @@ include = ["pds_nerf"]
 pds = 'pds_nerf.pds_config:pds_method'
 pds_refinement = 'pds_nerf.pds_config:refinement_method'
 nerfacto = 'pds_nerf.pds_config:nerfacto_method'
+pds_splat = 'pds_nerf.pds_config:pds_splat_method'
+pds_splat_refinement = 'pds_nerf.pds_config:pds_splat_refinement_method'

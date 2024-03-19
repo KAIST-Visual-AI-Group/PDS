@@ -8,8 +8,8 @@ from nerfstudio.engine.callbacks import (TrainingCallback,
                                          TrainingCallbackLocation)
 from nerfstudio.engine.trainer import Trainer, TrainerConfig
 from nerfstudio.utils import profiler, writer
-from nerfstudio.viewer.server.viewer_state import ViewerState
-from nerfstudio.viewer_beta.viewer import Viewer as ViewerBetaState
+from nerfstudio.viewer.viewer import Viewer as ViewerState
+from nerfstudio.viewer_legacy.server.viewer_state import ViewerLegacyState
 
 
 @dataclass
@@ -29,6 +29,7 @@ class PDSTrainer(Trainer):
             world_size=self.world_size,
             local_rank=self.local_rank,
             grad_scaler=self.grad_scaler,
+            # juil
             base_dir=self.base_dir,
         )
         self.optimizers = self.setup_optimizers()
@@ -36,6 +37,20 @@ class PDSTrainer(Trainer):
         # set up viewer if enabled
         viewer_log_path = self.base_dir / self.config.viewer.relative_log_filename
         self.viewer_state, banner_messages = None, None
+
+        if self.config.is_viewer_legacy_enabled() and self.local_rank == 0:
+            datapath = self.config.data
+            if datapath is None:
+                datapath = self.base_dir
+            self.viewer_state = ViewerLegacyState(
+                self.config.viewer,
+                log_filename=viewer_log_path,
+                datapath=datapath,
+                pipeline=self.pipeline,
+                trainer=self,
+                train_lock=self.train_lock,
+            )
+            banner_messages = [f"Legacy viewer at: {self.viewer_state.viewer_url}"]
         if self.config.is_viewer_enabled() and self.local_rank == 0:
             datapath = self.config.data
             if datapath is None:
@@ -47,27 +62,16 @@ class PDSTrainer(Trainer):
                 pipeline=self.pipeline,
                 trainer=self,
                 train_lock=self.train_lock,
+                share=self.config.viewer.make_share_url,
             )
-            banner_messages = [f"Viewer at: {self.viewer_state.viewer_url}"]
-        if self.config.is_viewer_beta_enabled() and self.local_rank == 0:
-            self.viewer_state = ViewerBetaState(
-                self.config.viewer,
-                log_filename=viewer_log_path,
-                datapath=self.base_dir,
-                pipeline=self.pipeline,
-                trainer=self,
-                train_lock=self.train_lock,
-            )
-            banner_messages = [f"Viewer Beta at: {self.viewer_state.viewer_url}"]
+            banner_messages = self.viewer_state.viewer_info
         self._check_viewer_warnings()
 
         self._load_checkpoint()
 
         self.callbacks = self.pipeline.get_training_callbacks(
             TrainingCallbackAttributes(
-                optimizers=self.optimizers,
-                grad_scaler=self.grad_scaler,
-                pipeline=self.pipeline,
+                optimizers=self.optimizers, grad_scaler=self.grad_scaler, pipeline=self.pipeline, trainer=self
             )
         )
         ### 0911 Juil
@@ -76,7 +80,7 @@ class PDSTrainer(Trainer):
             TrainingCallback(
                 where_to_run=[TrainingCallbackLocation.AFTER_TRAIN],
                 func=self.pipeline.get_average_eval_image_metrics,
-                kwargs={"output_path": self.base_dir / "eval_outputs"}
+                kwargs={"output_path": self.base_dir / "eval_outputs"},
             )
         )
 

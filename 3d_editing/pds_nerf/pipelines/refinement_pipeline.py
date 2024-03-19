@@ -1,21 +1,22 @@
-from collections import defaultdict
 import os
-from pathlib import Path
 import random
+from collections import defaultdict
 from dataclasses import dataclass, field
+from itertools import cycle
+from pathlib import Path
 from typing import Literal, Optional, Type, Union
 
+import numpy as np
 import torch
-from itertools import cycle
-from nerfstudio.pipelines.base_pipeline import VanillaPipelineConfig
+
+from pds_nerf.pipelines.base_pipeline import ModifiedVanillaPipeline
+from pds_nerf.data.datamanagers.pds_datamanager import PDSDataManagerConfig
 from torch.cuda.amp.grad_scaler import GradScaler
 
-from pds_nerf.modified_nerfstudio.base_pipeline import \
-    ModifiedVanillaPipeline
-from pds_nerf.pds_datamanager import PDSDataManagerConfig
-from pds.pds import PDS, PDSConfig, tensor_to_pil, pil_to_tensor
+from nerfstudio.pipelines.base_pipeline import VanillaPipelineConfig
+from pds.pds import PDS, PDSConfig, tensor_to_pil
 from pds.utils import imageutil
-from nerfstudio.utils import profiler
+from pds.utils.sysutil import clean_gpu
 
 
 @dataclass
@@ -61,6 +62,23 @@ class RefinementPipeline(ModifiedVanillaPipeline):
         else:
             self.train_indices_order = cycle(range(self.datamanager.config.train_num_images_to_sample_from))
 
+    def get_current_rendering(self):
+        current_spot = next(self.train_indices_order)
+        original_image = self.datamanager.original_image_batch["image"][current_spot].to(self.device)
+        original_image = original_image.unsqueeze(dim=0).permute(0, 3, 1, 2)
+        current_index = self.datamanager.image_batch["image_idx"][current_spot]
+        current_camera = self.datamanager.train_dataparser_outputs.cameras[current_index : current_index + 1].to(
+            self.device
+        )
+        camera_outputs = self.model.diff_get_outputs_for_camera(current_camera)
+        rendered_image = camera_outputs["rgb"].unsqueeze(dim=0).permute(0, 3, 1, 2)  # [B,3,H,W]
+        # delete to free up memory
+        del camera_outputs
+        del current_camera
+        clean_gpu()
+
+        return rendered_image, original_image, current_spot
+
     def get_train_loss_dict(self, step: int):
         ray_bundle, batch = self.datamanager.next_train(step)
         model_outputs = self.model(ray_bundle)
@@ -68,29 +86,11 @@ class RefinementPipeline(ModifiedVanillaPipeline):
 
         if step % self.config.edit_rate == 0:
             for i in range(self.config.edit_count):
-                current_spot = next(self.train_indices_order)
-                original_image = self.datamanager.original_image_batch["image"][current_spot].to(self.device)
-                current_index = self.datamanager.image_batch["image_idx"][current_spot]
-
-                camera_transforms = self.datamanager.train_camera_optimizer(current_index.unsqueeze(dim=0))
-                current_camera = self.datamanager.train_dataparser_outputs.cameras[current_index].to(self.device)
-                current_ray_bundle = current_camera.generate_rays(
-                    torch.tensor(list(range(1))).unsqueeze(-1), camera_opt_to_camera=camera_transforms
-                )
-                original_image = original_image.unsqueeze(dim=0).permute(0, 3, 1, 2)  # [B, 3, H, W]
-                camera_outputs = self.model.get_outputs_for_camera_ray_bundle(current_ray_bundle)
-                rendered_image = camera_outputs["rgb"].unsqueeze(dim=0).permute(0, 3, 1, 2)  # [B, 3, H, W]
-
-                # delete to free up memory
-                del camera_outputs
-                del current_camera
-                del current_ray_bundle
-                del camera_transforms
-                torch.cuda.empty_cache()
-
+                rendered_image, original_image, current_spot = self.get_current_rendering()
                 input_img = original_image
 
-                with torch.no_grad():
+                # with torch.no_grad():
+                if True:
                     h, w = input_img.shape[2:]
                     l = min(h, w)
                     h = int(h * 512 / l)
@@ -130,8 +130,6 @@ class RefinementPipeline(ModifiedVanillaPipeline):
                     save_img_pil = imageutil.merge_images([rendered_img_pil, edit_img_pil])
                     save_img_pil.save(self.base_dir / f"logging/replace-out-{step}.png")
 
-        kwargs = {"use_rgb_loss": True}
-        loss_dict = self.model.get_loss_dict(model_outputs, batch, metrics_dict, **kwargs)
+        loss_dict = self.model.get_loss_dict(model_outputs, batch, metrics_dict)
 
         return model_outputs, loss_dict, metrics_dict
-

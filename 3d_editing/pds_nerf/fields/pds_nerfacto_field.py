@@ -40,8 +40,8 @@ from nerfstudio.field_components.spatial_distortions import SpatialDistortion
 from nerfstudio.fields.base_field import Field, get_normalized_directions
 # from nerfstudio.fields.generfacto_field import get_normalized_directions
 
-
-class ModifiedNerfactoField(Field):
+# additional config turning off the use of appearance embedding
+class PDSNerfactoField(Field):
     """Compound Field that uses TCNN
 
     Args:
@@ -67,6 +67,8 @@ class ModifiedNerfactoField(Field):
         use_pred_normals: whether to use predicted normals
         use_average_appearance_embedding: whether to use average appearance embedding or zeros for inference
         spatial_distortion: spatial distortion to apply to the scene
+        ### juil:
+        use_appearance_embedding: whether to use appearance embedding
     """
 
     aabb: Tensor
