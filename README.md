@@ -35,10 +35,10 @@ pip install -e .
 ```
 
 ## 3D Editing
-For 3D editing, including NeRF and [3D Gaussian Splatting (3DGS)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) editing, refer to [`3d_editing/README.md`](./3d_editing/README.md).
+For 3D editing, including [NeRF](https://www.matthewtancik.com/nerf) and [3D Gaussian Splatting (3DGS)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) editing, refer to [3d_editing/README.md](./3d_editing/README.md).
 
 ## SVG Editing
-For SVG editing, refer to [`svg_editing/README.md`](./svg_editing/README.md).
+For SVG editing, refer to [svg_editing/README.md](./svg_editing/README.md).
 
 # Citation
 If you find our work useful, please consider citing:
