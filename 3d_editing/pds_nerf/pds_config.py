@@ -35,11 +35,6 @@ nerfacto_method = MethodSpecification(
                 dataparser=NerfstudioDataParserConfig(),
                 train_num_rays_per_batch=4096,
                 eval_num_rays_per_batch=4096,
-                camera_optimizer=CameraOptimizerConfig(
-                    mode="SO3xR3",
-                    optimizer=AdamOptimizerConfig(lr=6e-4, eps=1e-8, weight_decay=1e-2),
-                    scheduler=ExponentialDecaySchedulerConfig(lr_final=6e-6, max_steps=200000),
-                ),
             ),
             model=PDSNerfactoModelConfig(eval_num_rays_per_chunk=1 << 15),
         ),
@@ -52,6 +47,10 @@ nerfacto_method = MethodSpecification(
                 "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(lr_final=0.0001, max_steps=200000),
             },
+            "camera_opt": {
+                "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=5000),
+            }
         },
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
@@ -76,10 +75,6 @@ pds_method = MethodSpecification(
                 train_num_rays_per_batch=4096,
                 eval_num_rays_per_batch=4096,
                 patch_size=32,
-                camera_optimizer=CameraOptimizerConfig(
-                    mode="SO3xR3",
-                    optimizer=AdamOptimizerConfig(lr=1e-30, eps=1e-8, weight_decay=1e-2),
-                ),
             ),
             model=PDSNerfactoModelConfig(
                 eval_num_rays_per_chunk=1 << 15,
@@ -95,6 +90,10 @@ pds_method = MethodSpecification(
                 "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-3, warmup_steps=1000),
             },
+            "camera_opt": {
+                "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=5000),
+            }
         },
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
@@ -122,10 +121,6 @@ refinement_method = MethodSpecification(
                 train_num_rays_per_batch=4096,
                 eval_num_rays_per_batch=4096,
                 patch_size=32,
-                camera_optimizer=CameraOptimizerConfig(
-                    mode="SO3xR3",
-                    optimizer=AdamOptimizerConfig(lr=1e-30, eps=1e-8, weight_decay=1e-2),
-                ),
             ),
             model=PDSNerfactoModelConfig(
                 eval_num_rays_per_chunk=1 << 15,
@@ -141,6 +136,10 @@ refinement_method = MethodSpecification(
                 "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
                 "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-3, warmup_steps=1000),
             },
+            "camera_opt": {
+                "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=5000),
+            }
         },
         viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
         vis="viewer",
@@ -161,15 +160,9 @@ pds_splat_method = MethodSpecification(
         load_scheduler=False,
         pipeline=PDSPipelineConfig(
             pds=PDSConfig(src_prompt="", tgt_prompt=""),
-            datamanager=PDSDataManagerConfig(
+            datamanager=PDSSplatDataManagerConfig(
                 dataparser=PDSDataParserConfig(),
-                train_num_rays_per_batch=4096,
-                eval_num_rays_per_batch=4096,
                 patch_size=32,
-                camera_optimizer=CameraOptimizerConfig(
-                    mode="SO3xR3",
-                    optimizer=AdamOptimizerConfig(lr=1e-30, eps=1e-8, weight_decay=1e-2),
-                ),
             ),
             model=PDSSplatfactoModelConfig(
                 eval_num_rays_per_chunk=1 << 15,

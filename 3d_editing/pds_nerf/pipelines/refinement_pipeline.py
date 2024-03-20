@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from itertools import cycle
 from pathlib import Path
 from typing import Literal, Optional, Type, Union
+from pds_nerf.data.datamanagers.pds_splat_datamanager import PDSSplatDataManagerConfig
 
 import numpy as np
 import torch
@@ -23,7 +24,7 @@ from pds.utils.sysutil import clean_gpu
 class RefinementPipelineConfig(VanillaPipelineConfig):
     _target: Type = field(default_factory=lambda: RefinementPipeline)
 
-    datamanager: PDSDataManagerConfig = PDSDataManagerConfig()
+    datamanager: Union[PDSDataManagerConfig, PDSSplatDataManagerConfig] = PDSDataManagerConfig()
     pds: PDSConfig = PDSConfig()
     pds_device: Optional[Union[torch.device, str]] = None
 
