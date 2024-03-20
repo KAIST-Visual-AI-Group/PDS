@@ -50,7 +50,7 @@ To run the command within 24GB VRAM, you can use multiple GPUs by assigning a di
 
 After the training, it will automatically render an edited 3D scene at the same viewpoints of a training dataset and save those rendering images under `PATH/TO/OUTPUT_DIR/eval_outputs`.
 
-### 3. Refine 3D Scenes by SDEdit
+### 3. Refinement Stage
 You can refine the 3D scene edited by PDS through a refinement stage.
 
 ```
