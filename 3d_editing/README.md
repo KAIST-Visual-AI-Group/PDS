@@ -1,6 +1,7 @@
 # 3D Editing with PDS
 Here, we present the code for 3D editing, including [NeRF](https://www.matthewtancik.com/nerf) and [3D Gaussian Splatting (3DGS)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/), using PDS.
 
+
 ## Installation
 Our 3D editing code is based on [nerfstudio](https://docs.nerf.studio/)==1.0.2, diffusers==0.17.1 and transformers==4.30.2.
 
@@ -14,6 +15,7 @@ You should be able to see `pds`, `pds_refinement`, `pds_splat`, and `pds_splat_r
 ```
 ns-train -h
 ```
+
 
 ## Run
 ### 1. Initialize 3D Scenes
@@ -61,6 +63,7 @@ ns-train {pds_refinement or pds_splat_refinement} \\
 Here, `PATH/TO/PDS_OUTPUT_DIR` is the output directory of the previous stage. 
 Pass the same `tgt_prompt` and the same diffusion model used in the previous stage.
 
+
 ## Finetuning Stable Diffusion with Dreambooth
 For 3D editing, we have found that finetuning Stable Diffusion using [Dreambooth](https://dreambooth.github.io/) effectively reduces discrepancies between input prompts and real image data.
 
@@ -73,10 +76,10 @@ An instance prompt describes input images with a special token, for example, "a 
 
 Refer to the [Dreambooth](https://dreambooth.github.io/) paper or diffuser's [documentation](https://huggingface.co/docs/diffusers/training/dreambooth) for more details.
 
+
 ## Downloading Image Data and Finetuned Dreambooth Checkpoint
 We provide image data and our finetuned Dreambooth checkpoints [here](https://kaistackr-my.sharepoint.com/:f:/g/personal/63days_kaist_ac_kr/EocMB6MBpMJJksILj5_C7TYBsU5MCtKS7Wi8FCjlncLnug?e=TTUJZc).
 
 You can check out the instance prompts used in our Dreambooth finetuning in `prompts.txt` under each checkpoint directory.
 
 A subset of the 3D scene data is from [Instruct-NeRF2NeRF](https://instruct-nerf2nerf.github.io/).
-
