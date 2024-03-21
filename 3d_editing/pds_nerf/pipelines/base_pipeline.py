@@ -107,7 +107,6 @@ class ModifiedVanillaPipeline(VanillaPipeline):
 
         self.eval()
         metrics_dict_list = []
-        assert isinstance(self.datamanager, VanillaDataManager)
 
         ### 1113 juil
         # render_dataset contains all images including train set and eval set.
@@ -115,13 +114,13 @@ class ModifiedVanillaPipeline(VanillaPipeline):
             dataparser_outputs=self.get_all_dataparser_outputs(),
             scale_factor=self.datamanager.config.camera_res_scale_factor,
         )
-        self.datamanager.fixed_indices_eval_dataloader = FixedIndicesEvalDataloader(
+        fixed_indices_all_dataloader = FixedIndicesEvalDataloader(
             input_dataset=self.render_dataset,
             device=self.device,
             num_workers=self.world_size * 4,
         )
         ####
-        num_images = len(self.datamanager.fixed_indices_eval_dataloader)
+        num_images = len(fixed_indices_all_dataloader)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -134,7 +133,7 @@ class ModifiedVanillaPipeline(VanillaPipeline):
 
             gif_images = []
             gif_img_filenames = []
-            for i, (camera, batch) in enumerate(self.datamanager.fixed_indices_eval_dataloader):
+            for i, (camera, batch) in enumerate(fixed_indices_all_dataloader):
                 image_filename = Path(self.render_dataset.image_filenames[i]).stem
 
                 # time this the following line
