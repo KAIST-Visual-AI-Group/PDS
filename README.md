@@ -36,7 +36,7 @@ pip install -e .
 ```
 
 ## 2D Image Editing
-You can quickly test PDS editing on 2D images at `2d_image_editing_playground.ipynb`.
+You can quickly test PDS on 2D image editing at `2d_image_editing_playground.ipynb`.
 
 ## 3D Editing
 For 3D editing, including [NeRF](https://www.matthewtancik.com/nerf) and [3D Gaussian Splatting (3DGS)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) editing, refer to [3d_editing/README.md](./3d_editing/README.md).
