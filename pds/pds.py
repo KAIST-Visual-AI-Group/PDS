@@ -28,7 +28,9 @@ class PDS(object):
         self.config = config
         self.device = torch.device(config.device)
 
-        self.pipe = DiffusionPipeline.from_pretrained(config.sd_pretrained_model_or_path).to(self.device)
+        self.pipe = DiffusionPipeline.from_pretrained(
+            config.sd_pretrained_model_or_path
+        ).to(self.device)
 
         self.scheduler = DDIMScheduler.from_config(self.pipe.scheduler.config)
         self.scheduler.set_timesteps(config.num_inference_steps)
@@ -47,7 +49,9 @@ class PDS(object):
         self.src_prompt = self.config.src_prompt
         self.tgt_prompt = self.config.tgt_prompt
 
-        self.update_text_features(src_prompt=self.src_prompt, tgt_prompt=self.tgt_prompt)
+        self.update_text_features(
+            src_prompt=self.src_prompt, tgt_prompt=self.tgt_prompt
+        )
         self.null_text_feature = self.encode_text("")
 
     def compute_posterior_mean(self, xt, noise_pred, t, t_prev):
@@ -60,7 +64,9 @@ class PDS(object):
         alpha_bar_t = self.scheduler.alphas_cumprod[t].to(device)
         alpha_bar_t_prev = self.scheduler.alphas_cumprod[t_prev].to(device)
 
-        pred_x0 = (xt - torch.sqrt(1 - alpha_bar_t) * noise_pred) / torch.sqrt(alpha_bar_t)
+        pred_x0 = (xt - torch.sqrt(1 - alpha_bar_t) * noise_pred) / torch.sqrt(
+            alpha_bar_t
+        )
         c0 = torch.sqrt(alpha_bar_t_prev) * beta_t / (1 - alpha_bar_t)
         c1 = torch.sqrt(alpha_t) * (1 - alpha_bar_t_prev) / (1 - alpha_bar_t)
 
@@ -112,9 +118,15 @@ class PDS(object):
         self.scheduler.set_timesteps(self.config.num_inference_steps)
         timesteps = reversed(self.scheduler.timesteps)
 
-        min_step = 1 if self.config.min_step_ratio <= 0 else int(len(timesteps) * self.config.min_step_ratio)
+        min_step = (
+            1
+            if self.config.min_step_ratio <= 0
+            else int(len(timesteps) * self.config.min_step_ratio)
+        )
         max_step = (
-            len(timesteps) if self.config.max_step_ratio >= 1 else int(len(timesteps) * self.config.max_step_ratio)
+            len(timesteps)
+            if self.config.max_step_ratio >= 1
+            else int(len(timesteps) * self.config.max_step_ratio)
         )
         max_step = max(max_step, min_step + 1)
         idx = torch.randint(
@@ -137,6 +149,7 @@ class PDS(object):
         src_prompt=None,
         reduction="mean",
         return_dict=False,
+        method="pds",
     ):
         device = self.device
         scheduler = self.scheduler
@@ -158,36 +171,98 @@ class PDS(object):
 
         noise = torch.randn_like(tgt_x0)
         noise_t_prev = torch.randn_like(tgt_x0)
+        if method == "pds":
+            zts = dict()
+            for latent, cond_text_embedding, name in zip(
+                [tgt_x0, src_x0],
+                [tgt_text_embedding, src_text_embedding],
+                ["tgt", "src"],
+            ):
+                latents_noisy = scheduler.add_noise(latent, noise, t)
+                latent_model_input = torch.cat([latents_noisy] * 2, dim=0)
+                text_embeddings = torch.cat(
+                    [cond_text_embedding, uncond_embedding], dim=0
+                )
+                noise_pred = self.unet.forward(
+                    latent_model_input,
+                    torch.cat([t] * 2).to(device),
+                    encoder_hidden_states=text_embeddings,
+                ).sample
+                noise_pred_text, noise_pred_uncond = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + self.config.guidance_scale * (
+                    noise_pred_text - noise_pred_uncond
+                )
 
-        zts = dict()
-        for latent, cond_text_embedding, name in zip(
-            [tgt_x0, src_x0], [tgt_text_embedding, src_text_embedding], ["tgt", "src"]
-        ):
-            latents_noisy = scheduler.add_noise(latent, noise, t)
+                x_t_prev = scheduler.add_noise(latent, noise_t_prev, t_prev)
+                mu = self.compute_posterior_mean(latents_noisy, noise_pred, t, t_prev)
+                zt = (x_t_prev - mu) / sigma_t
+                zts[name] = zt
+
+            grad = zts["tgt"] - zts["src"]
+            grad = torch.nan_to_num(grad)
+            target = (tgt_x0 - grad).detach()
+            loss = 0.5 * F.mse_loss(tgt_x0, target, reduction=reduction) / batch_size
+            if return_dict:
+                dic = {"loss": loss, "grad": grad, "t": t}
+                return dic
+            else:
+                return loss
+        elif method == "sds":
+            latents_noisy = scheduler.add_noise(tgt_x0, noise, t)
             latent_model_input = torch.cat([latents_noisy] * 2, dim=0)
-            text_embeddings = torch.cat([cond_text_embedding, uncond_embedding], dim=0)
+            text_embeddings = torch.cat([tgt_text_embedding, uncond_embedding], dim=0)
             noise_pred = self.unet.forward(
                 latent_model_input,
                 torch.cat([t] * 2).to(device),
                 encoder_hidden_states=text_embeddings,
             ).sample
             noise_pred_text, noise_pred_uncond = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + self.config.guidance_scale * (noise_pred_text - noise_pred_uncond)
+            noise_pred = noise_pred_uncond + self.config.guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
 
-            x_t_prev = scheduler.add_noise(latent, noise_t_prev, t_prev)
-            mu = self.compute_posterior_mean(latents_noisy, noise_pred, t, t_prev)
-            zt = (x_t_prev - mu) / sigma_t
-            zts[name] = zt
+            w = (1 - alpha_bar_t).view(-1, 1, 1, 1)
+            grad = w * (noise_pred - noise)
+            target = (tgt_x0 - grad).detach()
+            loss = 0.5 * F.mse_loss(tgt_x0, target, reduction=reduction) / batch_size
+            if return_dict:
+                dic = {"loss": loss, "grad": grad, "t": t}
+                return dic
+            else:
+                return loss
+        elif method == "dds":
+            noise_preds = dict()
+            for latent, cond_text_embedding, name in zip(
+                [tgt_x0, src_x0],
+                [tgt_text_embedding, src_text_embedding],
+                ["tgt", "src"],
+            ):
+                latents_noisy = scheduler.add_noise(latent, noise, t)
+                latent_model_input = torch.cat([latents_noisy] * 2, dim=0)
+                text_embeddings = torch.cat(
+                    [cond_text_embedding, uncond_embedding], dim=0
+                )
+                noise_pred = self.unet.forward(
+                    latent_model_input,
+                    torch.cat([t] * 2).to(device),
+                    encoder_hidden_states=text_embeddings,
+                ).sample
+                noise_pred_text, noise_pred_uncond = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + self.config.guidance_scale * (
+                    noise_pred_text - noise_pred_uncond
+                )
 
-        grad = zts["tgt"] - zts["src"]
-        grad = torch.nan_to_num(grad)
-        target = (tgt_x0 - grad).detach()
-        loss = 0.5 * F.mse_loss(tgt_x0, target, reduction=reduction) / batch_size
-        if return_dict:
-            dic = {"loss": loss, "grad": grad, "t": t}
-            return dic
-        else:
-            return loss
+                noise_preds[name] = noise_pred
+
+            grad = noise_preds["tgt"] - noise_preds["src"]
+            grad = torch.nan_ton_num(grad)
+            target = (tgt_x0 - grad).detach()
+            loss = 0.5 * F.mse_loss(tgt_x0, target, reduction=reduction) / batch_size
+            if return_dict:
+                dic = {"loss": loss, "grad": grad, "t": t}
+                return dic
+            else:
+                return loss
 
     def run_sdedit(self, x0, tgt_prompt=None, num_inference_steps=20, skip=7, eta=0):
         scheduler = self.scheduler
@@ -216,25 +291,39 @@ class PDS(object):
                 encoder_hidden_states=text_embeddings,
             ).sample
             noise_pred_text, noise_pred_uncond = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + self.config.guidance_scale * (noise_pred_text - noise_pred_uncond)
+            noise_pred = noise_pred_uncond + self.config.guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
             xt = self.reverse_step(noise_pred, t, xt, eta=eta)
 
         return xt
 
     def reverse_step(self, model_output, timestep, sample, eta=0, variance_noise=None):
-        prev_timestep = timestep - self.scheduler.config.num_train_timesteps // self.scheduler.num_inference_steps
+        prev_timestep = (
+            timestep
+            - self.scheduler.config.num_train_timesteps
+            // self.scheduler.num_inference_steps
+        )
         alpha_prod_t = self.scheduler.alphas_cumprod[timestep]
         alpha_prod_t_prev = (
-            self.scheduler.alphas_cumprod[prev_timestep] if prev_timestep >= 0 else self.scheduler.final_alpha_cumprod
+            self.scheduler.alphas_cumprod[prev_timestep]
+            if prev_timestep >= 0
+            else self.scheduler.final_alpha_cumprod
         )
         beta_prod_t = 1 - alpha_prod_t
 
-        pred_original_sample = (sample - beta_prod_t ** (0.5) * model_output) / alpha_prod_t ** (0.5)
+        pred_original_sample = (
+            sample - beta_prod_t ** (0.5) * model_output
+        ) / alpha_prod_t ** (0.5)
 
         variance = self.get_variance(timestep)
         model_output_direction = model_output
-        pred_sample_direction = (1 - alpha_prod_t_prev - eta * variance) ** (0.5) * model_output_direction
-        prev_sample = alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
+        pred_sample_direction = (1 - alpha_prod_t_prev - eta * variance) ** (
+            0.5
+        ) * model_output_direction
+        prev_sample = (
+            alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
+        )
         if eta > 0:
             if variance_noise is None:
                 variance_noise = torch.randn_like(model_output)
@@ -243,14 +332,22 @@ class PDS(object):
         return prev_sample
 
     def get_variance(self, timestep):
-        prev_timestep = timestep - self.scheduler.config.num_train_timesteps // self.scheduler.num_inference_steps
+        prev_timestep = (
+            timestep
+            - self.scheduler.config.num_train_timesteps
+            // self.scheduler.num_inference_steps
+        )
         alpha_prod_t = self.scheduler.alphas_cumprod[timestep]
         alpha_prod_t_prev = (
-            self.scheduler.alphas_cumprod[prev_timestep] if prev_timestep >= 0 else self.scheduler.final_alpha_cumprod
+            self.scheduler.alphas_cumprod[prev_timestep]
+            if prev_timestep >= 0
+            else self.scheduler.final_alpha_cumprod
         )
         beta_prod_t = 1 - alpha_prod_t
         beta_prod_t_prev = 1 - alpha_prod_t_prev
-        variance = (beta_prod_t_prev / beta_prod_t) * (1 - alpha_prod_t / alpha_prod_t_prev)
+        variance = (beta_prod_t_prev / beta_prod_t) * (
+            1 - alpha_prod_t / alpha_prod_t_prev
+        )
         return variance
 
 
