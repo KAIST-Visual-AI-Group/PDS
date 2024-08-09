@@ -78,7 +78,7 @@ Refer to the [Dreambooth](https://dreambooth.github.io/) paper or diffuser's [do
 
 
 ## Downloading Image Data and Finetuned Dreambooth Checkpoint
-We provide image data and our finetuned Dreambooth checkpoints [here](https://kaistackr-my.sharepoint.com/:f:/g/personal/63days_kaist_ac_kr/EocMB6MBpMJJksILj5_C7TYBsU5MCtKS7Wi8FCjlncLnug?e=TTUJZc).
+We provide image data and our finetuned Dreambooth checkpoints [here](https://1drv.ms/f/s!AtxL_EOxFeYMk3rftsoc4L8cg0VS?e=Hhbprk).
 
 You can check out the instance prompts used in our Dreambooth finetuning in `prompts.txt` under each checkpoint directory.
 
