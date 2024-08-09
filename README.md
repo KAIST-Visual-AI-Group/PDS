@@ -14,6 +14,7 @@ PDS enables various parametric image editing, including NeRF, 3D Gaussian Splatt
 - [x] NeRF editing code.
 - [x] 3D Gaussian Splatting editing code.
 - [x] SVG editing code.
+- [x] 2D image editing playground code.
 
 [//]: # (### Abstract)
 > We introduce Posterior Distillation Sampling (PDS), a novel optimization method for parametric image editing based on diffusion models. Existing optimization-based methods, which leverage the powerful 2D prior of diffusion models to handle various parametric images, have mainly focused on generation. Unlike generation, editing requires a balance between conforming to the target attribute and preserving the identity of the source content. Recent 2D image editing methods have achieved this balance by leveraging the stochastic latent encoded in the generative process of diffusion models. To extend the editing capabilities of diffusion models shown in pixel space to parameter space, we reformulate the 2D image editing method into an optimization form named PDS. PDS matches the stochastic latents of the source and the target, enabling the sampling of targets in diverse parameter spaces that align with a desired attribute while maintaining the source's identity. We demonstrate that this optimization resembles running a generative process with the target attribute, but aligning this process with the trajectory of the source's generative process. Extensive editing results in Neural Radiance Fields and Scalable Vector Graphics representations demonstrate that PDS is capable of sampling targets to fulfill the aforementioned balance across various parameter spaces.
@@ -33,6 +34,9 @@ conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 pip install ninja git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
 pip install -e .
 ```
+
+## 2D Image Editing
+You can quickly test PDS editing on 2D images at `2d_image_editing_playground.ipynb`.
 
 ## 3D Editing
 For 3D editing, including [NeRF](https://www.matthewtancik.com/nerf) and [3D Gaussian Splatting (3DGS)](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) editing, refer to [3d_editing/README.md](./3d_editing/README.md).
