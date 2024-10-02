@@ -31,6 +31,7 @@ from torchmetrics.image import PeakSignalNoiseRatio
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
 from nerfstudio.cameras.cameras import Cameras
+from nerfstudio.cameras.camera_optimizers import CameraOptimizer, CameraOptimizerConfig
 from nerfstudio.cameras.rays import RayBundle, RaySamples
 from nerfstudio.data.scene_box import OrientedBox
 from nerfstudio.engine.callbacks import (TrainingCallback,
@@ -134,6 +135,9 @@ class PDSNerfactoModelConfig(ModelConfig):
     """Dimension of the appearance embedding."""
     # turn off appearance embedding
     use_appearance_embedding: bool = False
+    #Config of the camera optimizer to use
+    camera_optimizer: CameraOptimizerConfig = field(default_factory=lambda: CameraOptimizerConfig(mode="off"))
+    
 
 
 class PDSNerfactoModel(Model):
@@ -172,6 +176,10 @@ class PDSNerfactoModel(Model):
             appearance_embedding_dim=self.config.appearance_embed_dim,
             implementation=self.config.implementation,
             use_appearance_embedding=self.config.use_appearance_embedding,
+        )
+
+        self.camera_optimizer: CameraOptimizer = self.config.camera_optimizer.setup(
+            num_cameras=self.num_train_data, device="cpu"
         )
 
         self.density_fns = []
@@ -247,6 +255,7 @@ class PDSNerfactoModel(Model):
         param_groups = {}
         param_groups["proposal_networks"] = list(self.proposal_networks.parameters())
         param_groups["fields"] = list(self.field.parameters())
+        self.camera_optimizer.get_param_groups(param_groups=param_groups)
         return param_groups
 
     def get_training_callbacks(
@@ -284,6 +293,8 @@ class PDSNerfactoModel(Model):
         return callbacks
 
     def get_outputs(self, ray_bundle: RayBundle):
+        if self.training:
+            self.camera_optimizer.apply_to_raybundle(ray_bundle)
         ray_samples: RaySamples
         ray_samples, weights_list, ray_samples_list = self.proposal_sampler(ray_bundle, density_fns=self.density_fns)
         # print(ray_samples.spacing_starts.shape)
@@ -340,6 +351,7 @@ class PDSNerfactoModel(Model):
 
         if self.training:
             metrics_dict["distortion"] = distortion_loss(outputs["weights_list"], outputs["ray_samples_list"])
+        self.camera_optimizer.get_metrics_dict(metrics_dict)
         return metrics_dict
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):
@@ -368,6 +380,8 @@ class PDSNerfactoModel(Model):
                 loss_dict["pred_normal_loss"] = self.config.pred_normal_loss_mult * torch.mean(
                     outputs["rendered_pred_normal_loss"]
                 )
+            self.camera_optimizer.get_loss_dict(loss_dict)
+
         return loss_dict
 
     def get_image_metrics_and_images(
