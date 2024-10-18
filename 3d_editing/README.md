@@ -43,7 +43,9 @@ ns-train {pds or pds_splat} --data {data/yuseung} \\
 		--load-dir {PATH/TO/OUTPUT_DIR/nerfstudio_models} \\
 		--pipeline.pds.src_prompt "a photo of a sks man" \\
 		--pipeline.pds.tgt_prompt "a photo of a sks Spider Man" \\
-		--pipeline.pds.sd_pretrained_model_or_path {dreambooth_ckpt/yuseung_dreambooth}
+		--pipeline.pds.sd_pretrained_model_or_path {dreambooth_ckpt/yuseung_dreambooth} \\
+		--pipelien.pds.min_step_ratio 0.1 \\
+		--pipeline.pds.max_step_ratio 0.9 \\
 ```
 The VRAM requiremrents for `pds` and `pds_splat` are around 40GB and 2GB, respectively, with the resolution of 512x512 images.
 To run the command within 24GB VRAM, you can use multiple GPUs by assigning a different device to the prior model: `--pipeline.pds_device "cuda:1"`
