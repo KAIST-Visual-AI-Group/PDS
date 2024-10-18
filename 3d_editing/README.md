@@ -50,6 +50,8 @@ To run the command within 24GB VRAM, you can use multiple GPUs by assigning a di
 
 After the training, it will automatically render an edited 3D scene at the same viewpoints of a training dataset and save those rendering images under `PATH/TO/OUTPUT_DIR/eval_outputs`.
 
+If the scene doesn't change much from the original scene, you can adjust the t sampling range to [0.1, 0.9] by passing `--pipeline.pds.min_step_ratio 0.1 --pipeline.pds.max_step_ratio 0.9`, which will induce a greater change with a smaller coefficient of the identity preservation term in the PDS equation ($\mathbf{x}_0^{\text{src}} - \mathbf{x}_0^{\text{tgt}}$).
+
 ### 3. Refinement Stage
 You can refine the 3D scene edited by PDS through a refinement stage.
 
